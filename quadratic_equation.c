@@ -4,16 +4,18 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
-#define ACCURACY 0.001
-#define INF_SOLUTION -1
 #define NO_SOLUTION 0
-#define NUM_OF_VARIABLE 3
-int close_to_0(double arg);
-int solve_quadratic(double a, double b, double c, double* x1, double* x2);
-int solve_lineal(double b, double c, double* x1, double* x2);
+#define INF_SOLUTION -1
+const double ACCURACY = 0.001;
+const int NUM_OF_VARIABLE = 3;
+int solve_quadratic(double a, double b, double c, double* x1, double* x2);// solve quadratic equation ax^2 + bx + c = 0, return number of roots
+int solve_lineal(double b, double c, double* x1, double* x2); // solve lineal equation bx + c = 0, return number of roots
+int isEqual(double val1, double val2); // compare two real number with some accuracy
+//int RunUnitTests(); // Launch unit test and return number of failed tests
+int unit_test(int num_of_test, double a, double b, double c, int nRoots, double x1ref, double x2ref); // test solve_quadratic function
 int main()
 {
-	double a = 0, b = 0, c = 0, x1 = 0, x2 = 0;
+	double a = NAN, b = NAN, c = NAN, x1 = NAN, x2 = NAN;
 	printf("Please, enter coefficients a, b, c of quadratic equation separated by whitespace\n");
 	if (scanf_s("%lg %lg %lg", &a, &b, &c) != NUM_OF_VARIABLE)
 	{
@@ -30,7 +32,7 @@ int main()
 		printf("x = %lf", x1);
 		break;
 	case 2: 
-		printf("x1 = %lf, x2 = %lf", x1, x2);
+		printf("x1 = %lg, x2 = %lg", x1, x2);
 		break;
 	case INF_SOLUTION:
 		printf("x - any real number");
@@ -41,10 +43,10 @@ int main()
 
 	}
 }
-int close_to_0(double arg)
-{
-	return (fabs(arg) < ACCURACY);
-}
+//int close_to_0(double arg)
+//{
+	//return (fabs(arg) < ACCURACY);
+//}
 int solve_quadratic(double a, double b, double c, double* x1, double* x2)
 {
 	assert(isfinite(a));
@@ -53,12 +55,12 @@ int solve_quadratic(double a, double b, double c, double* x1, double* x2)
 	assert(x1 != x2);
 	assert(x1 != NULL);
 	assert(x2 != NULL);
-	if (close_to_0(a))
+	if (isEqual(a, 0))
 		return solve_lineal(b, c, x1, x2);
 	else
 	{
 		double d = b * b - 4 * a * c;
-		if (close_to_0(d))
+		if (isEqual(d, 0))
 		{
 			*x1 = *x2 = -b / (2 * a);
 			return 1;
@@ -77,9 +79,9 @@ int solve_quadratic(double a, double b, double c, double* x1, double* x2)
 }
 int solve_lineal(double b, double c, double* x1, double* x2)
 {
-	if (close_to_0(b))
+	if (isEqual(b, 0))
 	{
-		return (close_to_0(c)) ? INF_SOLUTION : NO_SOLUTION;
+		return (isEqual(c, 0)) ? INF_SOLUTION : NO_SOLUTION;
 	}
 	else
 	{
@@ -87,4 +89,31 @@ int solve_lineal(double b, double c, double* x1, double* x2)
 		return 1;
 	}
 }
-//! @param[in] a a-coefficient
+int isEqual(double val1, double val2)
+{
+	return (fabs(val1 - val2) < ACCURACY) ? 1 : 0;
+}
+/*
+int RunUnitTests() 
+{
+	double x1 = NAN, x2 = NAN;
+	int failed = 0, nRoots = 0;
+	if (unit_test(1, 1, 5, -6, 2, 1, -6))
+		failed++;
+	return failed;
+}
+*/
+int unit_test(int num_of_test, double a, double b, double c, int nRootsRef, double x1ref, double x2ref)
+{
+	double x1 = NAN, x2 = NAN;
+	int nRoots = solve_quadratic(a, b, c, &x1, &x2);
+	if (nRoots != nRootsRef || !isEqual(x1, x1ref) || !isEqual(x2, x2ref))
+	{
+		printf("Test %d FAILED\n x1 = %lg, x2 = %lg, nRoots = %d\n Should be: x1 = %lg, x2 = %lg, nRoots = %d", num_of_test,
+			x1, x2, nRoots, x1ref, x2ref, nRootsRef);
+		return 1;
+	}
+	else
+		return 0;
+}
+
