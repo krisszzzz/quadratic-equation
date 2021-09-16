@@ -111,52 +111,92 @@ char* my_strdup(char* str)
 
 	return p;
 }
-int my_getline(char** p_buffer, size_t* buffer_size, FILE* source)
+
+static size_t num_of_char_in_file(FILE* source)
 {
-	int c = 0;
 	fseek(source, 0, SEEK_END);
 
-	int size = ftell(source);
+	size_t length = (size_t)ftell(source);
 
 	fseek(source, 0, SEEK_SET);
-	
+	return length;
+}
+
+static int buffer_size_setting(char** p_buffer, size_t* buffer_size, size_t char_in_file)
+{
 	if(*p_buffer == NULL && *buffer_size != 0)
 		return EOF;
 
 	else if(*p_buffer == NULL && *buffer_size == 0)
-		{
-			char* p_temp = (char*)malloc(size + 1);
-			p_buffer = &p_temp;
-		}
-
-	else if(*buffer_size <= size)
 	{
-		char* p_temp = (char*)realloc(*p_buffer, size + 1);
-		p_buffer = &p_temp;
+			*p_buffer = (char*)malloc(char_in_file + 1);
+			*buffer_size = char_in_file + 1;
+			return 1;
 	}
 
+	else if(*buffer_size <= char_in_file)
+	{
+		*p_buffer = (char*)realloc(*p_buffer, char_in_file + 1);
+		*buffer_size = char_in_file + 1;
+		return 1;
+	}
+	else
+		return 0;
+}
+static size_t file_read(char** buffer, FILE* source, size_t char_in_file)
+{
 	int i;
+	int c = 0;
 
-	for(i = 0; i < size; ++i)
+	for(i = 0; i < char_in_file; ++i)
 		{
 			c = getc(source);
 
 			if(c == EOF)
 				return EOF;
 
-			if(c != '\n')
-				(*p_buffer)[i] = c;
-			else 
+			(*buffer)[i] = c;
+
+			if(c == '\n')
 				break;
 		}
 
-	if(i < size && i > *buffer_size) // delete unused memory
+
+	if(i == char_in_file)
 	{
-		char* p_temp = (char*)realloc(*p_buffer, i + 1);
-		p_buffer = &p_temp;
+		(*buffer)[i] = '\0';
+
+		return char_in_file;
+	}
+	else
+		{
+			(*buffer)[++i] = '\0';
+			return i;
+		}
+
+}
+
+int my_getline(char** p_buffer, size_t* buffer_size, FILE* source)
+{
+
+	size_t char_in_file = num_of_char_in_file(source);
+	int need_to_set_buffer = buffer_size_setting(p_buffer, buffer_size, char_in_file); // return 1, if buffer size setted by
+													//function or 0 if a buffer size is enough and correct, return EOF if error
+	if(need_to_set_buffer == EOF)
+		return EOF;
+	
+	size_t num_of_r_elem = file_read(p_buffer, source, char_in_file);
+
+	if(num_of_r_elem == EOF)
+		return EOF;
+
+
+	if(need_to_set_buffer && num_of_r_elem < char_in_file + 1) 
+
+	{
+		*p_buffer = realloc(*p_buffer, num_of_r_elem + 1);
+		*buffer_size = num_of_r_elem + 1;
 	}
 
-	(*p_buffer)[i] = '\0';
-
-	return i;
+	return (int)num_of_r_elem;
 }
