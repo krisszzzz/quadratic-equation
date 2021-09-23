@@ -4,83 +4,140 @@
 #include<stdio.h>
 #include<ctype.h>
 #include <stdlib.h>
-char* read_to_f_buffer(FILE* source, size_t file_size)
+#include<assert.h>
+
+#define WINDOWS
+typedef long long long_int;
+
+enum
+{
+	IGNORE = -2 // We use -2, because EOF = -1
+};
+
+void make_file(char* buffer, long_int file_size);
+
+char* read_to_f_buffer(FILE* source, long_int file_size);
+
+long_int find_file_size(FILE* source);
+
+void make_correct_file_end(char* buffer, long_int file_size);
+
+void ignore_empty_first_line(char* buffer, long_int file_size);
+
+void correct_lines(char* buffer, long_int file_size);
+
+void make_file(char* buffer, long_int file_size);
+
+void write_to_file(char* file_buffer, FILE* destination);
+
+int main()
+{
+	FILE* source = fopen("Onegin.txt", "rb");
+	assert(source);
+
+	long_int file_size = find_file_size(source);
+	assert(file_size > 0);
+
+	char* file_buffer = read_to_f_buffer(source, file_size);
+
+	make_file(file_buffer, file_size);
+
+	FILE* destination = fopen("Translated_Onegin.txt", "wb");
+	assert(destination);
+
+	write_to_file(file_buffer, destination);
+	
+	fclose(source);
+	fclose(destination);
+}
+
+char* read_to_f_buffer(FILE* source, long_int file_size)
 {
 	char* f_buffer = calloc(file_size + 3, sizeof(char));
-	fread(f_buffer, sizeof(char), file_size, source);
+	assert(f_buffer);
+
+	long_int num_of_readed_sym = fread(f_buffer, sizeof(char), file_size, source);
+
+	assert(num_of_readed_sym == file_size);
+
 	f_buffer[file_size] = '\0';
 
 	return f_buffer;
 }
-size_t find_file_size(FILE* source)
+long_int find_file_size(FILE* source)
 {
 	fseek(source, 0, SEEK_END);
-	size_t file_size = ftell(source);
+	long_int file_size = ftell(source);
 	fseek(source, 0, SEEK_SET);
 
 	return file_size;
 }
-void make_file(char* buffer,size_t file_size)
+void make_correct_file_end(char* buffer, long_int file_size)
 {
-	int index = 0;
 	if (buffer[file_size - 1] != '\n')
 	{
+		#ifdef WINDOWS
 
 		buffer[file_size] = '\r';
 		buffer[file_size + 1] = '\n';
 		buffer[file_size + 2] = '\0';
+
+		#elif
+
+		buffer[file_size] = '\n';
+		buffer[file_size + 1] = '\0';
+
+		#endif
 	}
-	int i;
+}
+
+
+void ignore_empty_first_line(char* buffer, long_int file_size)
+{
+	long_int i;
 	for(i = 0; isspace(buffer[i]); ++i)
-	{
-
-
-		buffer[i] = EOF;
-	}
+		buffer[i] = IGNORE;
+	
 	if(buffer[i] == '\n')
-	{
-		buffer[i] = EOF;
-	}
+		buffer[i] = IGNORE;
+	
+}
+void correct_lines(char* buffer, long_int file_size)
+{
+	long_int index = 0;
 	while (buffer[index] != '\0')
 	{
+		if (buffer[index] <= 0)
+				buffer[index] = IGNORE;
+
 		if (buffer[index] == '\n')
 		{
-			int temp = index;
+			
 			while (isspace(buffer[++index]))
-			{
-				buffer[index] = EOF;
-			}
+				buffer[index] = IGNORE;
 
 			if(buffer[index] == '\n')
-				buffer[index] = EOF;
+				buffer[index] = IGNORE;
 
 		}
 		++index;
-
 	}
 }
-int main()
+
+void make_file(char* buffer, long_int file_size)
 {
-	FILE* source = fopen("onegin.txt", "rb");
-	size_t file_size = find_file_size(source);
-	char* file_buffer = read_to_f_buffer(source, file_size);
-	make_file(file_buffer, file_size);
-	FILE* destination = fopen("Translated_Onegin.txt", "wb");
+	make_correct_file_end(buffer, file_size);
+
+	ignore_empty_first_line(buffer, file_size);
+
+	correct_lines(buffer, file_size);
+
+}
+void write_to_file(char* file_buffer, FILE* destination)
+{
 	for(int i = 0; file_buffer[i] != '\0'; ++i)
 	{
-		if(file_buffer[i] != EOF)
+		if(file_buffer[i] != IGNORE)
 			fputc(file_buffer[i], destination);
 	}
-
 }
-
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.

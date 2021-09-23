@@ -2,17 +2,15 @@
 //
 
 #define WINDOWS
-#pragma warning (disable: 4996)
 
-#include "Header.h"
+#include "Onegin_functions.h"
 
 int main()
 {
+	
 	FILE* LOG_FILE = fopen("LOG_FILE.txt", "w");
 
-
 	FILE* source = fopen("Translated_Onegin.txt", "rb");
-
 	ptr_status(source, "Error: the file isn't open\n", LOG_FILE);
 
 	long_int file_size = find_file_size(source);
@@ -23,40 +21,49 @@ int main()
 	long_int num_of_strings = count_strings(f_buffer, file_size);
 
 	string* ptr_string = calloc(num_of_strings, sizeof(string));
-
-	ptr_status(ptr_status, "Incorrect memory allocation for string structure\n", LOG_FILE);
+	ptr_status(ptr_string, "Incorrect memory allocation for string structure\n", LOG_FILE);
 
 	read_strings(f_buffer, ptr_string, num_of_strings);
-	
-	//my_qsort(ptr_string, num_of_strings, sizeof(string), comparator);
-	my_qsort(ptr_string, num_of_strings, sizeof(string), (int(*)(void*, void*)) end_comparator);
 
 	FILE* destination = fopen("True_Onegin.txt", "wb");
-	output(ptr_string, num_of_strings, destination);
 
-	//my_qsort(ptr_string, num_of_strings, sizeof(string), end_comparator);
-	//output(ptr_string, num_of_strings, destination);
+	//qsort(ptr_string, num_of_strings, sizeof(string), (int(*)(const void*, const void*))comparator);
+
+	my_qsort(ptr_string, num_of_strings, sizeof(string), (int(*)(void*, void*))comparator);
+	output(ptr_string, num_of_strings, destination);
+	
+	make_indent(destination);
+
+	my_qsort(ptr_string, num_of_strings, sizeof(string), (int(*)(void*, void*)) end_comparator);
+	output(ptr_string, num_of_strings, destination);
 
 	fclose(source);
 	fclose(destination);
+	fclose(LOG_FILE);
 
 	free_memory(f_buffer, ptr_string, num_of_strings);
+
 }
+
 
 void ptr_status(void* ptr, const char* error, FILE* log_file)
 {
 	if (ptr == NULL)
 	{
 		fprintf(log_file, error);
-		assert(NULL);
+		assert(ptr != NULL);
 	}
 }
 
 int comparator(string* first, string* second)
 {
+	assert(first->line != NULL);
+	assert(second->line != NULL);
+
 	char* p_first = first->line;
 	char* p_second = second->line;
 	int is_equal = 1;
+
 	while(*first->line != '\0' && *second->line != '\0')
 	{
 		if (!isalpha(*first->line))
@@ -75,7 +82,9 @@ int comparator(string* first, string* second)
 			}
 		}
 	}
+
 	int c = tolower(*first->line) - tolower(*second->line);
+
 	first->line = p_first;
 	second->line = p_second;
 
@@ -83,14 +92,15 @@ int comparator(string* first, string* second)
 }
 int end_comparator(string* first, string* second)
 {
+	
 	char* p_first = first->line;
 	char* p_second = second->line;
 
 	first->line += first->line_size - 1;
 	second->line += second->line_size - 1;
 
-	int is_equal = 1;
-	while (*first->line != *p_first && *second->line != *p_second)
+
+	while (first->line != p_first && second->line != p_second)
 	{
 		if (!isalpha(*first->line))
 			--first->line;
@@ -109,6 +119,7 @@ int end_comparator(string* first, string* second)
 		}
 	}
 	int c = tolower(*first->line) - tolower(*second->line);
+
 	first->line = p_first;
 	second->line = p_second;
 
@@ -132,7 +143,8 @@ char* read_to_f_buffer(FILE* source, long_int file_size)
 		fread(f_buffer, sizeof(char), file_size, source);
 		f_buffer[file_size] = '\0';
 	}
-	else return NULL;
+	else 
+		return NULL;
 
 	return f_buffer;
 }
@@ -144,6 +156,7 @@ long_int count_strings(char* buffer, long_int buffer_size)
 	{
 		if(buffer[i] == '\n')
 			num_of_strings++;
+
 		++i;
 	}
 	return num_of_strings;
@@ -164,10 +177,6 @@ void read_strings(char* buffer, string* str, long_int num_of_string)
 	
 	for(long_int buf_index = 0; (c =  buffer[buf_index]) != '\0'; ++buf_index)
 	{
-		if (c < 0)
-		{
-
-		}
 		if(c == '\n')
 		{
 			
@@ -181,7 +190,6 @@ void read_strings(char* buffer, string* str, long_int num_of_string)
 			string_index++;
 
 		}
-
 	}
 }
 
@@ -190,6 +198,8 @@ char* strndup(char* src, long_int size)
 	long_int i = 0;
 
 	char* dst = calloc((size_t)size + 1, sizeof(char));
+
+	assert(dst != NULL);
 
 	while(i < size)
 	{
@@ -200,6 +210,7 @@ char* strndup(char* src, long_int size)
 	dst[size] = '\0';
 	return dst;
 }
+
 
 void my_qsort(void* first, long_int number, size_t size, int (*compar)(void*, void*))
 {
@@ -213,21 +224,33 @@ void my_qsort(void* first, long_int number, size_t size, int (*compar)(void*, vo
 
 }
 
-
-
 void swap(void* a, void* b, size_t size)
 {
 	char* tmp = (char*)malloc(size);
+
+	assert(tmp != NULL);
+	assert(a != NULL);
+	assert(b != NULL);
+
 	memcpy(tmp, a, size);
 	memcpy(a, b, size);
 	memcpy(b, tmp, size);
 	free(tmp);
 }
+
+
 void output(string* ptr_string, long_int num_of_string, FILE* dst)
 {
 	for (long_int i = 0; i < num_of_string; ++i)
 		fprintf(dst, "%s\n", ptr_string[i].line);
 }
+
+void make_indent(FILE* dst)
+{
+	for(int i = 0; i < 50; ++i)
+		fputc('\n', dst);
+}
+
 void free_memory(char* f_buffer, string* ptr_string, long_int num_of_string)
 {
 
