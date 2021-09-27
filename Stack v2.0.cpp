@@ -1,4 +1,3 @@
-
 //
 #include<stdlib.h>
 #include<stdio.h>
@@ -98,7 +97,6 @@ void dtor_info_stack_##elem_type(stack_##elem_type* stack_t, FILE* LOG_FILE = nu
 		fprintf(LOG_FILE, "Object with address %p destructed.", stack_t);									\
 }																											\
 																											\
-#define ctor_stack_##elem_type(elem_name, capacity, ) ctor_stack_##elem_type_(&##elem_name, capacity, #elem_name); \																											\\
 \
 void ctor_stack_##elem_type_(stack_##elem_type* to_ctor, size_t capacity = 8, char* elem_name, int* err = nullptr, FILE* LOG_FILE = nullptr)	\
 {																									        \
@@ -176,5 +174,8 @@ void dtor_stack_##elem_type(stack_##elem_type* stack_t, FILE* LOG_FILE = nullptr
     stack_t->data = nullptr;																				\
     dtor_info_stack_##elem_type(stack_t, LOG_FILE);															\
 }																											\
+stack_template(int)
+int main()
+{
 
-
+}
