@@ -64,7 +64,9 @@ void general_info_stack_##elem_type (stack_##elem_type* stack_t, 											\
 }	\
 	\
 \
-void ctor_stack_##elem_type_(stack_##elem_type* to_ctor, size_t capacity = 8, char* elem_name, int* err = nullptr, FILE* LOG_FILE = nullptr)	\
+void ctor_stack_##elem_type(stack_##elem_type* to_ctor, size_t capacity = 8,\
+                            void (*printer)(elem_type* to_print) = nullptr,\
+                             int* err = nullptr, FILE* LOG_FILE = nullptr)	\
 {																									        \
                                                                                                             \
 	to_ctor->size = 0;																				        \
@@ -81,6 +83,7 @@ void ctor_stack_##elem_type_(stack_##elem_type* to_ctor, size_t capacity = 8, ch
                                                                                                             \
 	assert(to_ctor->data != nullptr);\
 }																									        \
+                                                                                                            \																				        \
                                                                                                             \
 int invalid_stack_##elem_type(stack_##elem_type* stack_t)											        \
 {																									        \
