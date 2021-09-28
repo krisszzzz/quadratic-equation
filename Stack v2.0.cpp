@@ -1,4 +1,3 @@
-//
 #include<stdlib.h>
 #include<stdio.h>
 #include<assert.h>
@@ -33,70 +32,37 @@ typedef struct {																					        \
                                                                                                             \
 } stack_##elem_type;																						\
 																											\
-void general_info_stack_##elem_type (stack_##elem_type* stack_t, const char* name = nullptr,  FILE* LOG_FILE = nullptr)					\
-{\
-	int is_name_remembered = 0;\
-    if(stack_t == nullptr)																					\
-        return;\
-	if(name != nullptr && !is_name_remembered)\
-		static const char* elem_name = name;\
-																											\
-	if(LOG_FILE != nullptr && elem_name != nullptr)																					\
-		fprintf(LOG_FILE, "Stack info: stack address = %p, stack name -  %s stack type - %s, stack size = %d," \
-				" stack capacity = %d, stack data = %p\n", stack_t, elem_name, #elem_type,\
-				stack_t->size, stack_t->capacity, stack_t->data);\
-}\
 \
-\
-void ctor_info_stack_##elem_type (stack_##elem_type* stack_t, FILE* LOG_FILE = nullptr)\
-{\
-    \
-	if(LOG_FILE != nullptr)\
-	{																												\
-		fprintf(LOG_FILE, "Object with address %p was constructed\n", stack_t);										\
-		general_info_stack_##elem_type (stack_t, LOG_FILE);															\
-		fprintf(LOG_FILE, "Stack is constructed; number of constructor calling %d\n", num_of_call_##elem_type);		\
-	}																												\
-}																													\
-void pop_info_stack_##elem_type (stack_##elem_type* stack_t, elem_type* value, FILE* LOG_FILE = nullptr)			\
-{																													\
-	if(LOG_FILE != nullptr)																							\
-		general_info_stack_##elem_type (stack_t, LOG_FILE);															\
-    if(LOG_FILE != nullptr)																							\
-		fprintf(LOG_FILE, "Popped element addres = %p\n", value);													\
-}																													\
-																													\
-																													\
-void push_info_stack_##elem_type(stack_##elem_type* stack_t, elem_type* value, FILE* LOG_FILE = nullptr)\
-{\
-    general_info_stack_##elem_type(stack_t, LOG_FILE);\
-    if(LOG_FILE != nullptr)\
-		fprintf(LOG_FILE, "Pushed element addres = %p\n", value);\
-}\
-void memory_info_stack_##elem_type(stack_##elem_type* stack_t,\
-int amount_of_memory, const char memory_mode, FILE* LOG_FILE = nullptr)	\
-{																													\
-if (LOG_FILE != nullptr)																							\
-general_info_stack_##elem_type(stack_t, LOG_FILE);															\
-    if(memory_mode == 'a')																							\
-    {																												\
-		if(LOG_FILE != nullptr)																				\
-			fprintf(LOG_FILE, "memory allocated = %d\n", amount_of_memory);									\
-    }																										\
-    if(memory_mode == 'r')																					\
-    {																										\
-		if(LOG_FILE != nullptr)																				\
-			fprintf(LOG_FILE, "memory reallocated = %d\n", amount_of_memory);								\
-    }																										\
-}																											\
-																											\
-																											\
-void dtor_info_stack_##elem_type(stack_##elem_type* stack_t, FILE* LOG_FILE = nullptr)				\
-{\
-	if(LOG_FILE != nullptr)\
-		fprintf(LOG_FILE, "Object with address %p destructed.", stack_t);									\
-}																											\
-																											\
+void general_info_stack_##elem_type (stack_##elem_type* stack_t, 											\
+									 void (*printer)(elem_type* to_print) = nullptr,  FILE* LOG_FILE = nullptr)\
+{                                                                                                            \
+    static void (*stat_printer)(elem_type* to_print) = nullptr;                                                \
+	int is_name_remembered = 0;                                                                               \
+    if(stack_t == nullptr)																					   \
+        return;                                                                                               \
+    if(printer != nullptr)                                                                                     \
+        stat_printer = printer;                                                                                \
+																											   \
+	if(LOG_FILE != nullptr)                                                                                    \
+    {                                                                                                         \
+		fprintf(LOG_FILE, "Stack info: stack address = %p, stack type - %s, stack size = %d,"                  \
+				" stack capacity = %d, stack data = %p\n, address of elements - ", stack_t, #elem_type,        \
+				stack_t->size, stack_t->capacity, stack_t->data);                                              \
+		for(int elem_of_data = 0; elem_of_data <= stack_t->size; ++elem_of_data)                               \
+		{                                                                                                      \
+           fprintf(LOG_FILE, "&[%d] == %p\n", elem_of_data, &stack_t->data);                                   \
+           if(stat_printer != nullptr)                                                                         \
+           {                                                                                                   \
+                fprintf(LOG_FILE, "*[%d] == ");                                                                \
+                stat_printer(&stack_t->data[elem_of_data]);                                                    \
+                fprintf(LOG_FILE, "\n");                                                                       \
+           }                                                                                                   \
+                                                                                                               \
+		}                                                                                                      \
+    } \
+     \
+}	\
+	\
 \
 void ctor_stack_##elem_type_(stack_##elem_type* to_ctor, size_t capacity = 8, char* elem_name, int* err = nullptr, FILE* LOG_FILE = nullptr)	\
 {																									        \
@@ -107,16 +73,13 @@ void ctor_stack_##elem_type_(stack_##elem_type* to_ctor, size_t capacity = 8, ch
 	{																								        \
 		to_ctor->capacity = MIN_SIZE;																        \
 		to_ctor->data = (elem_type*)calloc(MIN_SIZE, sizeof(elem_type));                                    \
-		memory_info_stack_##elem_type(to_ctor, MIN_SIZE , 'a', LOG_FILE);						                        \
 	}																								        \
 	else {																							        \
 	to_ctor->capacity = capacity;																		    \
 	to_ctor->data = (elem_type*)calloc(capacity, sizeof(elem_type));                                        \
-	memory_info_stack_##elem_type(to_ctor, capacity , 'a', LOG_FILE);											        \
 	}																								        \
                                                                                                             \
 	assert(to_ctor->data != nullptr);\
-	ctor_info_stack_##elem_type (to_ctor, LOG_FILE);															        \
 }																									        \
                                                                                                             \
 int invalid_stack_##elem_type(stack_##elem_type* stack_t)											        \
@@ -134,10 +97,8 @@ void stack_push_##elem_type(stack_##elem_type* stack_t, elem_type* value, FILE* 
 		stack_t->data = (elem_type*)recalloc(stack_t->data, 2*stack_t->capacity, sizeof(elem_type));  \
 		stack_t->capacity *= 2;\
 		stack_t->data[stack_t->size++] = *value;\
-        memory_info_stack_##elem_type(stack_t, stack_t->capacity, 'r', LOG_FILE);\
 		assert(stack_t->data != nullptr);															        \
 	}\
-	push_info_stack_##elem_type(stack_t, value, LOG_FILE);															 \
 }                                                                                                           \
                                                                                                             \
 int is_empty_stack_##elem_type(stack_##elem_type* stack_t)											        \
@@ -155,9 +116,7 @@ elem_type* stack_pop_##elem_type(stack_##elem_type* stack_t, int* err = nullptr,
         {\
 			stack_t->data = (elem_type*)recalloc(stack_t->data, stack_t->capacity / 2, sizeof(elem_type));\
 			stack_t->capacity /= 2;\
-			memory_info_stack_##elem_type(stack_t, stack_t->capacity, 'r', LOG_FILE);                                 \
         }                                                                                                   \
-         pop_info_stack_##elem_type(stack_t, &stack_t->data[stack_t->size], LOG_FILE);                                \
 		return &stack_t->data[stack_t->size--];														        \
                                                                                                             \
 	}																								        \
@@ -172,7 +131,6 @@ void dtor_stack_##elem_type(stack_##elem_type* stack_t, FILE* LOG_FILE = nullptr
     stack_t->size = stack_t->capacity = 0;\
     free(stack_t->data);\
     stack_t->data = nullptr;																				\
-    dtor_info_stack_##elem_type(stack_t, LOG_FILE);															\
 }																											\
 stack_template(int)
 int main()
