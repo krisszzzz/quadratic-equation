@@ -1,18 +1,35 @@
 #include<stdlib.h>
 #include<stdio.h>
-#include<assert.h>
+#include<cassert>
+#include<string.h>
 
 #pragma warning (disable: 4996)
 
 enum ERRORS
 {
-	STACK_UNDERFLOW
+	STACK_UNDERFLOW,
+	INCCORECT_STACK,
+
 };
 
 const int MIN_SIZE = 8;
 const int OFFSET_ON_DELETING = 3;
 
-
+void switch_errors(int error, FILE* LOG_FILE)
+{
+	assert(LOG_FILE != nullptr || "Critical error: LOG_FILE is nullptr,"
+	 "impossible to switch errors" == 0);
+	switch(error)
+	{
+		STACK_UNDERFLOW:
+			fprintf(LOG_FILE, "WARNING: STACK_UNDERFLOW, please don't use pop function"
+			"if stack is empty\n");
+			break;
+		INCCORECT_STACK:
+			fprintf(LOG_FILE, "WARNING: INVALID_STACK, your stack was nulled, "
+			"because he was inccorect\n");
+	}
+}
 
 void* recalloc(void* block, size_t elem_count, size_t elem_size)
 {
@@ -27,8 +44,8 @@ void* recalloc(void* block, size_t elem_count, size_t elem_size)
 #define stack_template(elem_type)																	        \
 typedef struct {																					        \
 	elem_type* data;																				        \
-	size_t size;																					        \
-	size_t capacity;																				        \
+	ssize_t size;																					        \
+	ssize_t capacity;																				        \
                                                                                                             \
 } stack_##elem_type;																						\
 																											\
@@ -69,7 +86,12 @@ void ctor_stack_##elem_type(stack_##elem_type* to_ctor, size_t capacity = 8,\
                              int* err = nullptr, FILE* LOG_FILE = nullptr)	\
 {																									        \
                                                                                                             \
-	to_ctor->size = 0;																				        \
+	if(DEBUG_LELEV >= 1)\
+	{\
+		elem_type null_initialized = {0};\
+		if(memcmp(to_ctor, &null_initialized) != 0)\
+			\
+	}\																										
                                                                                                             \
 	if(capacity < MIN_SIZE)																				    \
 	{																								        \
@@ -83,11 +105,11 @@ void ctor_stack_##elem_type(stack_##elem_type* to_ctor, size_t capacity = 8,\
                                                                                                             \
 	assert(to_ctor->data != nullptr);\
 }																									        \
-                                                                                                            \																				        \
+                    																				        \
                                                                                                             \
 int invalid_stack_##elem_type(stack_##elem_type* stack_t)											        \
 {																									        \
-	return (stack_t->size > stack_t->capacity) ? 1 : 0;												        \
+	\
 }																									        \
                                                                                                             \
 void stack_push_##elem_type(stack_##elem_type* stack_t, elem_type* value, FILE* LOG_FILE = nullptr)							        \
@@ -96,7 +118,6 @@ void stack_push_##elem_type(stack_##elem_type* stack_t, elem_type* value, FILE* 
 		stack_t->data[stack_t->size++] = *value;\
 	else																							        \
 	{																								        \
-		assert(stack_t->size == stack_t->capacity);													        \
 		stack_t->data = (elem_type*)recalloc(stack_t->data, 2*stack_t->capacity, sizeof(elem_type));  \
 		stack_t->capacity *= 2;\
 		stack_t->data[stack_t->size++] = *value;\
@@ -111,7 +132,7 @@ int is_empty_stack_##elem_type(stack_##elem_type* stack_t)											        \
                                                                                                             \
 }																									        \
                                                                                                             \
-elem_type* stack_pop_##elem_type(stack_##elem_type* stack_t, int* err = nullptr, FILE* LOG_FILE = nullptr)					        \
+elem_type stack_pop_##elem_type(stack_##elem_type* stack_t, int* err = nullptr, FILE* LOG_FILE = nullptr)					        \
 {																									        \
 	if(!is_empty_stack_##elem_type(stack_t))														        \
 	{																								        \
@@ -119,14 +140,23 @@ elem_type* stack_pop_##elem_type(stack_##elem_type* stack_t, int* err = nullptr,
         {\
 			stack_t->data = (elem_type*)recalloc(stack_t->data, stack_t->capacity / 2, sizeof(elem_type));\
 			stack_t->capacity /= 2;\
-        }                                                                                                   \
-		return &stack_t->data[stack_t->size--];														        \
+        }\
+		if(DEBUG_LEVEL >= 1)   {                                                                               \
+			elem_type to_return =  stack->data[stack->size];\
+			elem_type null_inititialized = {0};\
+			stack->data[stack->size--] = null_initialized;\
+			return to_return;\
+			\
+		}\
+		else\
+			return stack->data[stack->size--];\
                                                                                                             \
 	}																								        \
 	else																							        \
 	{																								        \
 	    *err = STACK_UNDERFLOW;	                                                                            \
-	    return nullptr;                                                                                     \
+	    elem_type null_inititialized = {0};																	\
+		return null_initialized;																			\
     }																										\
 }																											\
 void dtor_stack_##elem_type(stack_##elem_type* stack_t, FILE* LOG_FILE = nullptr)							\
